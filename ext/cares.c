@@ -4,6 +4,34 @@
 
 #define BUFLEN	46
 
+VALUE cNotImpError;
+VALUE cNotFoundError;
+VALUE cNoMemError;
+VALUE cDestrError;
+VALUE cFlagsError;
+
+static void
+raise_error(int error)
+{
+	switch(error) {
+	case ARES_ENOTIMP:
+		rb_raise(cNotImpError, "%s", ares_strerror(error));
+		break;
+	case ARES_ENOTFOUND:
+		rb_raise(cNotFoundError, "%s", ares_strerror(error));
+		break;
+	case ARES_ENOMEM:
+		rb_raise(cNoMemError, "%s", ares_strerror(error));
+		break;
+	case ARES_EDESTRUCTION:
+		rb_raise(cDestrError, "%s", ares_strerror(error));
+		break;
+	case ARES_EBADFLAGS:
+		rb_raise(cFlagsError, "%s", ares_strerror(error));
+		break;
+	}
+}
+
 static VALUE
 rb_cares_destroy(void *chp)
 {
@@ -28,7 +56,7 @@ rb_cares_init(VALUE self)
 
 	status = ares_init(chp);
 	if (status != ARES_SUCCESS)
-		rb_raise(rb_eRuntimeError, "%s", ares_strerror(status));
+		raise_error(status);
 	return(self);
 }
 
@@ -40,7 +68,7 @@ host_callback(void *arg, int status, struct hostent *hp)
 	VALUE	  block, info, aliases;
 
         if (status != ARES_SUCCESS)
-                rb_raise(rb_eRuntimeError, "%s", ares_strerror(status));
+                raise_error(status);
 
 	block = (VALUE)arg;
 
@@ -70,7 +98,7 @@ rb_cares_gethostbyname(VALUE self, VALUE host, VALUE family)
 	ares_channel *chp;
 
 	if (!rb_block_given_p())
-		rb_raise(rb_eArgError, "gethostbyname needs a block");
+		rb_raise(rb_eArgError, "gethostbyname: block needed");
 
 	Data_Get_Struct(self, ares_channel, chp);
 	ares_gethostbyname(*chp, StringValuePtr(host), NUM2INT(family),
@@ -110,7 +138,7 @@ rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 		break;
 	}
 	default:
-		rb_raise(rb_eArgError, "gethostbyaddr: invalid address family");
+		rb_raise(cNotImpError, "gethostbyaddr: invalid address family");
 	}
 	return(self);
 }
@@ -138,16 +166,50 @@ rb_cares_select_loop(VALUE self)
 	return(Qnil);
 }
 
-static VALUE
-rb_cares_getnameinfo(VALUE self, VALUE addr)
+static void
+nameinfo_callback(void *arg, int status, char *node, char *service)
 {
-	/* TODO */
+}
+
+static VALUE
+rb_cares_getnameinfo(VALUE self, VALUE info, VALUE flags)
+{
+	int	cflags;
+	struct sockaddr_storage ss;
+	ares_channel *chp;
+
+	/* TODO fill ss */
+
+	Data_Get_Struct(self, ares_channel, chp);
+	cflags = NUM2INT(flags);
+
+	ares_getnameinfo(*chp, (struct sockaddr *)&ss, ss.ss_len, cflags,
+			 nameinfo_callback, (void *)rb_block_proc());
 }
 
 void
 Init_cares(void)
 {
 	VALUE cCares = rb_define_class("Cares", rb_cObject);
+
+	cNotImpError = rb_define_class("NotImplementedError", rb_eException);
+	cNotFoundError = rb_define_class("AddressNotFoundError", rb_eException);
+	cNoMemError = rb_define_class("cNoMemoryError", rb_eException);
+	cDestrError = rb_define_class("DestructionError", rb_eException);
+	cFlagsError = rb_define_class("BadFlagsError", rb_eException);
+
+	rb_define_const(cCares, "NOFQDN", ARES_NI_NOFQDN);
+	rb_define_const(cCares, "NUMERICHOST", ARES_NI_NUMERICHOST);
+	rb_define_const(cCares, "NAMEREQD", ARES_NI_NAMEREQD);
+	rb_define_const(cCares, "NUMERICSERV", ARES_NI_NUMERICSERV);
+	rb_define_const(cCares, "TCP", ARES_NI_TCP);
+	rb_define_const(cCares, "UDP", ARES_NI_UDP);
+	rb_define_const(cCares, "SCTP", ARES_NI_SCTP);
+	rb_define_const(cCares, "DCCP", ARES_NI_DCCP);
+	rb_define_const(cCares, "NUMERICSCOPE", ARES_NI_NUMERICSCOPE);
+	rb_define_const(cCares, "LOOKUPHOST", ARES_NI_LOOKUPHOST);
+	rb_define_const(cCares, "LOOKUPSERVICE", ARES_NI_LOOKUPSERVICE);
+
 	rb_define_alloc_func(cCares, rb_cares_alloc);
 	rb_define_method(cCares, "initialize", rb_cares_init, 0);
 	rb_define_method(cCares, "gethostbyname", rb_cares_gethostbyname, 2);
