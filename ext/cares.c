@@ -1,5 +1,10 @@
 #include <ruby.h>
 #include <ares.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <arpa/inet.h>
 #include <netdb.h>
 
 #define BUFLEN	46
@@ -13,7 +18,7 @@ VALUE cFlagsError;
 static void
 raise_error(int error)
 {
-	switch(error) {
+	switch (error) {
 	case ARES_ENOTIMP:
 		rb_raise(cNotImpError, "%s", ares_strerror(error));
 		break;
@@ -36,6 +41,7 @@ static VALUE
 rb_cares_destroy(void *chp)
 {
 	ares_destroy(*(ares_channel *)chp);
+	return(Qnil);
 }
 
 static VALUE
@@ -50,7 +56,6 @@ rb_cares_init(VALUE self)
 {
 	int	status;
 	ares_channel *chp;
-	VALUE	obj;
 
 	Data_Get_Struct(self, ares_channel, chp);
 
@@ -120,7 +125,7 @@ rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 	cfamily = NUM2INT(family);
 	caddr = StringValuePtr(addr);
 
-	switch(cfamily) {
+	switch (cfamily) {
 	case AF_INET: {
 		struct in_addr in;
 		if (inet_pton(cfamily, caddr, &in) != 1)
@@ -140,6 +145,90 @@ rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 	default:
 		rb_raise(cNotImpError, "gethostbyaddr: invalid address family");
 	}
+	return(self);
+}
+
+static void
+nameinfo_callback(void *arg, int status, char *node, char *service)
+{
+	VALUE	  block, info;
+
+        if (status != ARES_SUCCESS)
+                raise_error(status);
+
+	block = (VALUE)arg;
+
+	info = rb_ary_new();
+
+	if (node != NULL)
+		rb_ary_push(info, rb_str_new2(node));
+	
+	if (service != NULL)
+		rb_ary_push(info, rb_str_new2(service));
+	
+	rb_funcall(block, rb_intern("call"), 1, info);
+}
+
+static VALUE
+rb_cares_getnameinfo(VALUE self, VALUE info)
+{
+	int	cflags;
+	socklen_t sslen;
+	struct sockaddr_storage ss;
+	ares_channel *chp;
+	VALUE	vaddr, vport, vflags;	/* Hash keys */
+
+	Data_Get_Struct(self, ares_channel, chp);
+
+	vflags = rb_hash_aref(info, ID2SYM(rb_intern("cflags")));
+	if (!NIL_P(vflags))
+		cflags = NUM2INT(vflags);
+	else
+		cflags = 0;
+
+	sslen = 0;
+	ss.ss_family = AF_INET;
+
+	vaddr = rb_hash_aref(info, ID2SYM(rb_intern("addr")));
+	if (!NIL_P(vaddr)) {
+		char	*caddr = StringValuePtr(vaddr);
+		struct sockaddr_in *sinp;
+		struct sockaddr_in6 *sin6p;
+
+		sinp  = (struct sockaddr_in *)&ss;
+		sin6p = (struct sockaddr_in6 *)&ss;
+
+		cflags |= ARES_NI_LOOKUPHOST;
+
+		if (inet_pton(AF_INET, caddr, &sinp->sin_addr) == 1) {
+			sslen = sizeof(struct sockaddr_in);
+		} else if (inet_pton(AF_INET6, caddr, &sin6p->sin6_addr) == 1) {
+			ss.ss_family = AF_INET6;
+			sslen = sizeof(struct sockaddr_in6);
+		} else {
+			rb_raise(cNotImpError,
+				 "getnameinfo: invalid address family");
+		}
+	}
+
+	vport = rb_hash_aref(info, ID2SYM(rb_intern("port")));
+	if (!NIL_P(vport)) {
+		u_short	cport = htons(NUM2UINT(vport));
+		cflags |= ARES_NI_LOOKUPSERVICE;
+		switch (ss.ss_family) {
+		case AF_INET:
+			((struct sockaddr_in *)&ss)->sin_port = cport;
+			sslen = sizeof(struct sockaddr_in);
+			break;
+		case AF_INET6:
+			((struct sockaddr_in6 *)&ss)->sin6_port = cport;
+			sslen = sizeof(struct sockaddr_in6);
+			break;
+		}
+	}
+
+	ares_getnameinfo(*chp, (struct sockaddr *)&ss, sslen, cflags,
+			 nameinfo_callback, (void *)rb_block_proc());
 	return(self);
 }
 
@@ -166,37 +255,21 @@ rb_cares_select_loop(VALUE self)
 	return(Qnil);
 }
 
-static void
-nameinfo_callback(void *arg, int status, char *node, char *service)
-{
-}
-
-static VALUE
-rb_cares_getnameinfo(VALUE self, VALUE info, VALUE flags)
-{
-	int	cflags;
-	struct sockaddr_storage ss;
-	ares_channel *chp;
-
-	/* TODO fill ss */
-
-	Data_Get_Struct(self, ares_channel, chp);
-	cflags = NUM2INT(flags);
-
-	ares_getnameinfo(*chp, (struct sockaddr *)&ss, ss.ss_len, cflags,
-			 nameinfo_callback, (void *)rb_block_proc());
-}
-
 void
 Init_cares(void)
 {
 	VALUE cCares = rb_define_class("Cares", rb_cObject);
 
-	cNotImpError = rb_define_class("NotImplementedError", rb_eException);
-	cNotFoundError = rb_define_class("AddressNotFoundError", rb_eException);
-	cNoMemError = rb_define_class("cNoMemoryError", rb_eException);
-	cDestrError = rb_define_class("DestructionError", rb_eException);
-	cFlagsError = rb_define_class("BadFlagsError", rb_eException);
+	cNotImpError = rb_define_class_under(cCares, "NotImplementedError",
+					     rb_eException);
+	cNotFoundError = rb_define_class_under(cCares, "AddressNotFoundError",
+					       rb_eException);
+	cNoMemError = rb_define_class_under(cCares, "NoMemoryError",
+					    rb_eException);
+	cDestrError = rb_define_class_under(cCares, "DestructionError",
+					    rb_eException);
+	cFlagsError = rb_define_class_under(cCares, "BadFlagsError",
+					    rb_eException);
 
 	rb_define_const(cCares, "NOFQDN", ARES_NI_NOFQDN);
 	rb_define_const(cCares, "NUMERICHOST", ARES_NI_NUMERICHOST);
@@ -207,13 +280,11 @@ Init_cares(void)
 	rb_define_const(cCares, "SCTP", ARES_NI_SCTP);
 	rb_define_const(cCares, "DCCP", ARES_NI_DCCP);
 	rb_define_const(cCares, "NUMERICSCOPE", ARES_NI_NUMERICSCOPE);
-	rb_define_const(cCares, "LOOKUPHOST", ARES_NI_LOOKUPHOST);
-	rb_define_const(cCares, "LOOKUPSERVICE", ARES_NI_LOOKUPSERVICE);
 
 	rb_define_alloc_func(cCares, rb_cares_alloc);
 	rb_define_method(cCares, "initialize", rb_cares_init, 0);
 	rb_define_method(cCares, "gethostbyname", rb_cares_gethostbyname, 2);
 	rb_define_method(cCares, "gethostbyaddr", rb_cares_gethostbyaddr, 2);
-	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 2);
+	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 1);
 	rb_define_method(cCares, "select_loop", rb_cares_select_loop, 0);
 }
