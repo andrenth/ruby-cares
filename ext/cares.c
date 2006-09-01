@@ -9,11 +9,44 @@
 
 #define BUFLEN	46
 
-VALUE cNotImpError;
-VALUE cNotFoundError;
-VALUE cNoMemError;
-VALUE cDestrError;
-VALUE cFlagsError;
+static VALUE cNameInfo;
+static VALUE cNotImpError;
+static VALUE cBadNameError;
+static VALUE cNotFoundError;
+static VALUE cNoMemError;
+static VALUE cDestrError;
+static VALUE cFlagsError;
+
+static void
+define_cares_exceptions(VALUE cC)
+{
+	cNotImpError =
+	    rb_define_class_under(cC, "NotImplementedError", rb_eException);
+	cBadNameError =
+	    rb_define_class_under(cC, "BadNameError", rb_eException);
+	cNotFoundError =
+	    rb_define_class_under(cC, "AddressNotFoundError", rb_eException);
+	cNoMemError =
+	    rb_define_class_under(cC, "NoMemoryError", rb_eException);
+	cDestrError =
+	    rb_define_class_under(cC, "DestructionError", rb_eException);
+	cFlagsError =
+	    rb_define_class_under(cC, "BadFlagsError", rb_eException);
+}
+
+static void
+define_nameinfo_flags(VALUE cNI)
+{
+	rb_define_const(cNI, "NOFQDN", INT2NUM(ARES_NI_NOFQDN));
+	rb_define_const(cNI, "NUMERICHOST", INT2NUM(ARES_NI_NUMERICHOST));
+	rb_define_const(cNI, "NAMEREQD", INT2NUM(ARES_NI_NAMEREQD));
+	rb_define_const(cNI, "NUMERICSERV", INT2NUM(ARES_NI_NUMERICSERV));
+	rb_define_const(cNI, "TCP", INT2NUM(ARES_NI_TCP));
+	rb_define_const(cNI, "UDP", INT2NUM(ARES_NI_UDP));
+	rb_define_const(cNI, "SCTP", INT2NUM(ARES_NI_SCTP));
+	rb_define_const(cNI, "DCCP", INT2NUM(ARES_NI_DCCP));
+	rb_define_const(cNI, "NUMERICSCOPE", INT2NUM(ARES_NI_NUMERICSCOPE));
+}
 
 static void
 raise_error(int error)
@@ -259,27 +292,10 @@ void
 Init_cares(void)
 {
 	VALUE cCares = rb_define_class("Cares", rb_cObject);
+	define_cares_exceptions(cCares);
 
-	cNotImpError = rb_define_class_under(cCares, "NotImplementedError",
-					     rb_eException);
-	cNotFoundError = rb_define_class_under(cCares, "AddressNotFoundError",
-					       rb_eException);
-	cNoMemError = rb_define_class_under(cCares, "NoMemoryError",
-					    rb_eException);
-	cDestrError = rb_define_class_under(cCares, "DestructionError",
-					    rb_eException);
-	cFlagsError = rb_define_class_under(cCares, "BadFlagsError",
-					    rb_eException);
-
-	rb_define_const(cCares, "NOFQDN", ARES_NI_NOFQDN);
-	rb_define_const(cCares, "NUMERICHOST", ARES_NI_NUMERICHOST);
-	rb_define_const(cCares, "NAMEREQD", ARES_NI_NAMEREQD);
-	rb_define_const(cCares, "NUMERICSERV", ARES_NI_NUMERICSERV);
-	rb_define_const(cCares, "TCP", ARES_NI_TCP);
-	rb_define_const(cCares, "UDP", ARES_NI_UDP);
-	rb_define_const(cCares, "SCTP", ARES_NI_SCTP);
-	rb_define_const(cCares, "DCCP", ARES_NI_DCCP);
-	rb_define_const(cCares, "NUMERICSCOPE", ARES_NI_NUMERICSCOPE);
+	cNameInfo = rb_define_class_under(cCares, "NameInfo", rb_cObject);
+	define_nameinfo_flags(cNameInfo);
 
 	rb_define_alloc_func(cCares, rb_cares_alloc);
 	rb_define_method(cCares, "initialize", rb_cares_init, 0);
