@@ -112,7 +112,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 		optmask |= ARES_OPT_FLAGS;
 	}
 	vtimeout = rb_hash_aref(opts, ID2SYM(rb_intern("timeout")));
-        if (!NIL_P(vflags)) {
+        if (!NIL_P(vtimeout)) {
                 aop->timeout = NUM2INT(vtimeout);
 		optmask |= ARES_OPT_TIMEOUT;
 	}
