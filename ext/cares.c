@@ -9,6 +9,7 @@
 
 #define BUFLEN	46
 
+static VALUE cInit;
 static VALUE cNameInfo;
 static VALUE cNotImpError;
 static VALUE cBadNameError;
@@ -32,6 +33,19 @@ define_cares_exceptions(VALUE cC)
 	    rb_define_class_under(cC, "DestructionError", rb_eException);
 	cFlagsError =
 	    rb_define_class_under(cC, "BadFlagsError", rb_eException);
+}
+
+static void
+define_init_flags(VALUE cInit)
+{
+	rb_define_const(cInit, "USEVC", INT2NUM(ARES_FLAG_USEVC));
+	rb_define_const(cInit, "PRIMARY", INT2NUM(ARES_FLAG_PRIMARY));
+	rb_define_const(cInit, "IGNTC", INT2NUM(ARES_FLAG_IGNTC));
+	rb_define_const(cInit, "NORECURSE", INT2NUM(ARES_FLAG_NORECURSE));
+	rb_define_const(cInit, "STAYOPEN", INT2NUM(ARES_FLAG_STAYOPEN));
+	rb_define_const(cInit, "NOSEARCH", INT2NUM(ARES_FLAG_NOSEARCH));
+	rb_define_const(cInit, "NOALIASES", INT2NUM(ARES_FLAG_NOALIASES));
+	rb_define_const(cInit, "NOCHECKRESP", INT2NUM(ARES_FLAG_NOCHECKRESP));
 }
 
 static void
@@ -84,17 +98,79 @@ rb_cares_alloc(VALUE klass)
 	return(Data_Make_Struct(klass, ares_channel, 0, rb_cares_destroy, chp));
 }
 
-static VALUE
-rb_cares_init(VALUE self)
+static int
+set_init_opts(VALUE opts, struct ares_options *aop)
 {
-	int	status;
+	int	optmask = 0;
+	VALUE vflags, vtimeout, vtries, vndots, vudp_port, vtcp_port;
+	VALUE vservers, vdomains;	/* TODO */
+	VALUE vlookups, vcallback;
+
+	vflags = rb_hash_aref(opts, ID2SYM(rb_intern("flags")));
+        if (!NIL_P(vflags)) {
+                aop->flags = NUM2INT(vflags);
+		optmask |= ARES_OPT_FLAGS;
+	}
+	vtimeout = rb_hash_aref(opts, ID2SYM(rb_intern("timeout")));
+        if (!NIL_P(vflags)) {
+                aop->timeout = NUM2INT(vtimeout);
+		optmask |= ARES_OPT_TIMEOUT;
+	}
+	vtries = rb_hash_aref(opts, ID2SYM(rb_intern("tries")));
+        if (!NIL_P(vtries)) {
+                aop->timeout = NUM2INT(vtries);
+		optmask |= ARES_OPT_TRIES;
+	}
+	vndots = rb_hash_aref(opts, ID2SYM(rb_intern("ndots")));
+        if (!NIL_P(vndots)) {
+                aop->timeout = NUM2INT(vtries);
+		optmask |= ARES_OPT_NDOTS;
+	}
+	vudp_port = rb_hash_aref(opts, ID2SYM(rb_intern("udp_port")));
+        if (!NIL_P(vudp_port)) {
+                aop->udp_port = NUM2UINT(vudp_port);
+		optmask |= ARES_OPT_UDP_PORT;
+	}
+	vtcp_port = rb_hash_aref(opts, ID2SYM(rb_intern("tcp_port")));
+        if (!NIL_P(vtcp_port)) {
+                aop->tcp_port = NUM2UINT(vtcp_port);
+		optmask |= ARES_OPT_TCP_PORT;
+	}
+	/* TODO: servers, domains */
+	vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
+        if (!NIL_P(vndots)) {
+                aop->lookups = StringValuePtr(vlookups);
+		optmask |= ARES_OPT_LOOKUPS;
+	}
+	/* TODO: callback */
+
+	return(optmask);
+}
+
+static VALUE
+rb_cares_init(int argc, VALUE *argv, VALUE self)
+{
+	int	status, optmask;
 	ares_channel *chp;
+	struct ares_options ao;
+	VALUE opts;
 
 	Data_Get_Struct(self, ares_channel, chp);
 
-	status = ares_init(chp);
+	rb_scan_args(argc, argv, "01", &opts);
+	if (NIL_P(opts)) {
+		status = ares_init(chp);
+		if (status != ARES_SUCCESS)
+			raise_error(status);
+		return(self);
+	}
+
+	optmask = set_init_opts(opts, &ao);
+
+	status = ares_init_options(chp, &ao, optmask);
 	if (status != ARES_SUCCESS)
 		raise_error(status);
+
 	return(self);
 }
 
@@ -213,7 +289,7 @@ rb_cares_getnameinfo(VALUE self, VALUE info)
 
 	Data_Get_Struct(self, ares_channel, chp);
 
-	vflags = rb_hash_aref(info, ID2SYM(rb_intern("cflags")));
+	vflags = rb_hash_aref(info, ID2SYM(rb_intern("flags")));
 	if (!NIL_P(vflags))
 		cflags = NUM2INT(vflags);
 	else
@@ -294,11 +370,14 @@ Init_cares(void)
 	VALUE cCares = rb_define_class("Cares", rb_cObject);
 	define_cares_exceptions(cCares);
 
+	cInit = rb_define_class_under(cCares, "Init", rb_cObject);
+	define_init_flags(cInit);
+
 	cNameInfo = rb_define_class_under(cCares, "NameInfo", rb_cObject);
 	define_nameinfo_flags(cNameInfo);
 
 	rb_define_alloc_func(cCares, rb_cares_alloc);
-	rb_define_method(cCares, "initialize", rb_cares_init, 0);
+	rb_define_method(cCares, "initialize", rb_cares_init, -1);
 	rb_define_method(cCares, "gethostbyname", rb_cares_gethostbyname, 2);
 	rb_define_method(cCares, "gethostbyaddr", rb_cares_gethostbyaddr, 2);
 	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 1);
