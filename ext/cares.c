@@ -342,12 +342,31 @@ rb_cares_getnameinfo(VALUE self, VALUE info)
 }
 
 static VALUE
-rb_cares_select_loop(VALUE self)
+rb_cares_select_loop(int argc, VALUE *argv, VALUE self)
 {
 	int	nfds;
 	fd_set	read, write;
 	struct timeval *tvp, tv;
+	struct timeval *maxtvp, maxtv;
 	ares_channel *chp;
+	VALUE	timeout;
+
+	rb_scan_args(argc, argv, "01", &timeout);
+
+	maxtvp = NULL;
+	if (!NIL_P(timeout)) {
+		VALUE	secs, usecs;
+
+		secs = rb_hash_aref(timeout, ID2SYM(rb_intern("seconds")));
+		if (!NIL_P(secs))
+			maxtv.tv_sec = NUM2LONG(secs);
+		usecs = rb_hash_aref(timeout, ID2SYM(rb_intern("useconds")));
+		if (!NIL_P(usecs))
+			maxtv.tv_usec = NUM2LONG(usecs);
+
+		if (!NIL_P(secs) || !NIL_P(usecs))
+			maxtvp = &maxtv;
+	}
 
 	Data_Get_Struct(self, ares_channel, chp);
 
@@ -357,7 +376,7 @@ rb_cares_select_loop(VALUE self)
 		nfds = ares_fds(*chp, &read, &write);
 		if (nfds == 0)
 			break;
-		tvp = ares_timeout(*chp, NULL, &tv); /* XXX max timeout */
+		tvp = ares_timeout(*chp, maxtvp, &tv);
 		rb_thread_select(nfds, &read, &write, NULL, tvp);
 		ares_process(*chp, &read, &write);
 	}
@@ -381,5 +400,5 @@ Init_cares(void)
 	rb_define_method(cCares, "gethostbyname", rb_cares_gethostbyname, 2);
 	rb_define_method(cCares, "gethostbyaddr", rb_cares_gethostbyaddr, 2);
 	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 1);
-	rb_define_method(cCares, "select_loop", rb_cares_select_loop, 0);
+	rb_define_method(cCares, "select_loop", rb_cares_select_loop, -1);
 }
