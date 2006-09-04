@@ -19,47 +19,47 @@ static VALUE cDestrError;
 static VALUE cFlagsError;
 
 static void
-define_cares_exceptions(VALUE cC)
+define_cares_exceptions(VALUE cares)
 {
 	cNotImpError =
-	    rb_define_class_under(cC, "NotImplementedError", rb_eException);
+	    rb_define_class_under(cares, "NotImplementedError", rb_eException);
 	cBadNameError =
-	    rb_define_class_under(cC, "BadNameError", rb_eException);
+	    rb_define_class_under(cares, "BadNameError", rb_eException);
 	cNotFoundError =
-	    rb_define_class_under(cC, "AddressNotFoundError", rb_eException);
+	    rb_define_class_under(cares, "AddressNotFoundError", rb_eException);
 	cNoMemError =
-	    rb_define_class_under(cC, "NoMemoryError", rb_eException);
+	    rb_define_class_under(cares, "NoMemoryError", rb_eException);
 	cDestrError =
-	    rb_define_class_under(cC, "DestructionError", rb_eException);
+	    rb_define_class_under(cares, "DestructionError", rb_eException);
 	cFlagsError =
-	    rb_define_class_under(cC, "BadFlagsError", rb_eException);
+	    rb_define_class_under(cares, "BadFlagsError", rb_eException);
 }
 
 static void
-define_init_flags(VALUE cInit)
+define_init_flags(VALUE init)
 {
-	rb_define_const(cInit, "USEVC", INT2NUM(ARES_FLAG_USEVC));
-	rb_define_const(cInit, "PRIMARY", INT2NUM(ARES_FLAG_PRIMARY));
-	rb_define_const(cInit, "IGNTC", INT2NUM(ARES_FLAG_IGNTC));
-	rb_define_const(cInit, "NORECURSE", INT2NUM(ARES_FLAG_NORECURSE));
-	rb_define_const(cInit, "STAYOPEN", INT2NUM(ARES_FLAG_STAYOPEN));
-	rb_define_const(cInit, "NOSEARCH", INT2NUM(ARES_FLAG_NOSEARCH));
-	rb_define_const(cInit, "NOALIASES", INT2NUM(ARES_FLAG_NOALIASES));
-	rb_define_const(cInit, "NOCHECKRESP", INT2NUM(ARES_FLAG_NOCHECKRESP));
+	rb_define_const(init, "USEVC", INT2NUM(ARES_FLAG_USEVC));
+	rb_define_const(init, "PRIMARY", INT2NUM(ARES_FLAG_PRIMARY));
+	rb_define_const(init, "IGNTC", INT2NUM(ARES_FLAG_IGNTC));
+	rb_define_const(init, "NORECURSE", INT2NUM(ARES_FLAG_NORECURSE));
+	rb_define_const(init, "STAYOPEN", INT2NUM(ARES_FLAG_STAYOPEN));
+	rb_define_const(init, "NOSEARCH", INT2NUM(ARES_FLAG_NOSEARCH));
+	rb_define_const(init, "NOALIASES", INT2NUM(ARES_FLAG_NOALIASES));
+	rb_define_const(init, "NOCHECKRESP", INT2NUM(ARES_FLAG_NOCHECKRESP));
 }
 
 static void
-define_nameinfo_flags(VALUE cNI)
+define_nameinfo_flags(VALUE ni)
 {
-	rb_define_const(cNI, "NOFQDN", INT2NUM(ARES_NI_NOFQDN));
-	rb_define_const(cNI, "NUMERICHOST", INT2NUM(ARES_NI_NUMERICHOST));
-	rb_define_const(cNI, "NAMEREQD", INT2NUM(ARES_NI_NAMEREQD));
-	rb_define_const(cNI, "NUMERICSERV", INT2NUM(ARES_NI_NUMERICSERV));
-	rb_define_const(cNI, "TCP", INT2NUM(ARES_NI_TCP));
-	rb_define_const(cNI, "UDP", INT2NUM(ARES_NI_UDP));
-	rb_define_const(cNI, "SCTP", INT2NUM(ARES_NI_SCTP));
-	rb_define_const(cNI, "DCCP", INT2NUM(ARES_NI_DCCP));
-	rb_define_const(cNI, "NUMERICSCOPE", INT2NUM(ARES_NI_NUMERICSCOPE));
+	rb_define_const(ni, "NOFQDN", INT2NUM(ARES_NI_NOFQDN));
+	rb_define_const(ni, "NUMERICHOST", INT2NUM(ARES_NI_NUMERICHOST));
+	rb_define_const(ni, "NAMEREQD", INT2NUM(ARES_NI_NAMEREQD));
+	rb_define_const(ni, "NUMERICSERV", INT2NUM(ARES_NI_NUMERICSERV));
+	rb_define_const(ni, "TCP", INT2NUM(ARES_NI_TCP));
+	rb_define_const(ni, "UDP", INT2NUM(ARES_NI_UDP));
+	rb_define_const(ni, "SCTP", INT2NUM(ARES_NI_SCTP));
+	rb_define_const(ni, "DCCP", INT2NUM(ARES_NI_DCCP));
+	rb_define_const(ni, "NUMERICSCOPE", INT2NUM(ARES_NI_NUMERICSCOPE));
 }
 
 static void
@@ -111,8 +111,8 @@ static int
 set_init_opts(VALUE opts, struct ares_options *aop)
 {
 	int	optmask = 0;
-	VALUE vflags, vtimeout, vtries, vndots, vudp_port, vtcp_port;
-	VALUE vservers, vdomains, vlookups;
+	VALUE	vflags, vtimeout, vtries, vndots, vudp_port, vtcp_port;
+	VALUE	vservers, vdomains, vlookups;
 
 	if (!NIL_P(opts)) {
 		vflags = rb_hash_aref(opts, ID2SYM(rb_intern("flags")));
@@ -204,7 +204,7 @@ rb_cares_init(int argc, VALUE *argv, VALUE self)
 	int	status, optmask;
 	ares_channel *chp;
 	struct ares_options ao;
-	VALUE opts;
+	VALUE	opts;
 
 	Data_Get_Struct(self, ares_channel, chp);
 
@@ -228,8 +228,7 @@ rb_cares_init(int argc, VALUE *argv, VALUE self)
 static void
 host_callback(void *arg, int status, struct hostent *hp)
 {
-	char	**p;
-	char	  buf[BUFLEN];
+	char	  buf[BUFLEN], **p;
 	VALUE	  block, info, aliases;
 
         if (status != ARES_SUCCESS)
@@ -317,12 +316,10 @@ nameinfo_callback(void *arg, int status, char *node, char *service)
                 raise_error(status);
 
 	block = (VALUE)arg;
-
 	info = rb_ary_new();
 
 	if (node != NULL)
 		rb_ary_push(info, rb_str_new2(node));
-	
 	if (service != NULL)
 		rb_ary_push(info, rb_str_new2(service));
 	
@@ -336,7 +333,7 @@ rb_cares_getnameinfo(VALUE self, VALUE info)
 	socklen_t sslen;
 	struct sockaddr_storage ss;
 	ares_channel *chp;
-	VALUE	vaddr, vport, vflags;	/* Hash keys */
+	VALUE	vaddr, vport, vflags;
 
 	Data_Get_Struct(self, ares_channel, chp);
 
