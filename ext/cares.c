@@ -112,8 +112,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 {
 	int	optmask = 0;
 	VALUE vflags, vtimeout, vtries, vndots, vudp_port, vtcp_port;
-	VALUE vservers, vdomains;	/* TODO */
-	VALUE vlookups;
+	VALUE vservers, vdomains, vlookups;
 
 	if (!NIL_P(opts)) {
 		vflags = rb_hash_aref(opts, ID2SYM(rb_intern("flags")));
@@ -146,7 +145,44 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			aop->tcp_port = NUM2UINT(vtcp_port);
 			optmask |= ARES_OPT_TCP_PORT;
 		}
-		/* TODO: servers, domains */
+		vservers = rb_hash_aref(opts, ID2SYM(rb_intern("servers")));
+		if (!NIL_P(vservers)) {
+			long	i, n;
+			struct in_addr in, *servers;
+
+			n = RARRAY(vservers)->len;
+			servers = ALLOCA_N(struct in_addr, n);
+			for (i = 0; i < n; i++) {
+				char	*caddr;
+				VALUE	 vaddr;
+				vaddr = rb_ary_entry(vservers, i);
+				caddr = StringValuePtr(vaddr);
+				if (inet_pton(AF_INET, caddr, &in) != 1)
+					rb_sys_fail("initialize");
+				MEMCPY(servers+i, &in, struct in_addr, 1);
+			}
+			aop->servers = servers;
+			aop->nservers = n;
+			optmask |= ARES_OPT_SERVERS;
+		}
+		vdomains = rb_hash_aref(opts, ID2SYM(rb_intern("domains")));
+		if (!NIL_P(vdomains)) {
+			char	*domains;
+			long	 i, n;
+
+			n = RARRAY(vdomains)->len;
+			domains = ALLOC_N(char, n);
+			for (i = 0; i < n; i++) {
+				char	*cdomain;
+				VALUE	 vdomain;
+				vdomain = rb_ary_entry(vdomains, i);
+				cdomain = StringValuePtr(vdomain);
+				MEMCPY(domains+i, cdomain, strlen(cdomain), 1);
+			}
+			aop->domains = &domains;
+			aop->ndomains = n;
+			optmask |= ARES_OPT_DOMAINS;
+		}
 		vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
 		if (!NIL_P(vndots)) {
 			aop->lookups = StringValuePtr(vlookups);
