@@ -98,51 +98,66 @@ rb_cares_alloc(VALUE klass)
 	return(Data_Make_Struct(klass, ares_channel, 0, rb_cares_destroy, chp));
 }
 
+static void
+init_callback(void *arg, int socket, int read, int write)
+{
+	VALUE	block = (VALUE)arg;
+
+	rb_funcall(block, rb_intern("call"), 3, INT2NUM(socket),
+		   read ? Qtrue : Qfalse, write ? Qtrue : Qfalse);
+}
+
 static int
 set_init_opts(VALUE opts, struct ares_options *aop)
 {
 	int	optmask = 0;
 	VALUE vflags, vtimeout, vtries, vndots, vudp_port, vtcp_port;
 	VALUE vservers, vdomains;	/* TODO */
-	VALUE vlookups, vcallback;
+	VALUE vlookups;
 
-	vflags = rb_hash_aref(opts, ID2SYM(rb_intern("flags")));
-        if (!NIL_P(vflags)) {
-                aop->flags = NUM2INT(vflags);
-		optmask |= ARES_OPT_FLAGS;
+	if (!NIL_P(opts)) {
+		vflags = rb_hash_aref(opts, ID2SYM(rb_intern("flags")));
+		if (!NIL_P(vflags)) {
+			aop->flags = NUM2INT(vflags);
+			optmask |= ARES_OPT_FLAGS;
+		}
+		vtimeout = rb_hash_aref(opts, ID2SYM(rb_intern("timeout")));
+		if (!NIL_P(vtimeout)) {
+			aop->timeout = NUM2INT(vtimeout);
+			optmask |= ARES_OPT_TIMEOUT;
+		}
+		vtries = rb_hash_aref(opts, ID2SYM(rb_intern("tries")));
+		if (!NIL_P(vtries)) {
+			aop->timeout = NUM2INT(vtries);
+			optmask |= ARES_OPT_TRIES;
+		}
+		vndots = rb_hash_aref(opts, ID2SYM(rb_intern("ndots")));
+		if (!NIL_P(vndots)) {
+			aop->timeout = NUM2INT(vtries);
+			optmask |= ARES_OPT_NDOTS;
+		}
+		vudp_port = rb_hash_aref(opts, ID2SYM(rb_intern("udp_port")));
+		if (!NIL_P(vudp_port)) {
+			aop->udp_port = NUM2UINT(vudp_port);
+			optmask |= ARES_OPT_UDP_PORT;
+		}
+		vtcp_port = rb_hash_aref(opts, ID2SYM(rb_intern("tcp_port")));
+		if (!NIL_P(vtcp_port)) {
+			aop->tcp_port = NUM2UINT(vtcp_port);
+			optmask |= ARES_OPT_TCP_PORT;
+		}
+		/* TODO: servers, domains */
+		vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
+		if (!NIL_P(vndots)) {
+			aop->lookups = StringValuePtr(vlookups);
+			optmask |= ARES_OPT_LOOKUPS;
+		}
 	}
-	vtimeout = rb_hash_aref(opts, ID2SYM(rb_intern("timeout")));
-        if (!NIL_P(vtimeout)) {
-                aop->timeout = NUM2INT(vtimeout);
-		optmask |= ARES_OPT_TIMEOUT;
+	if (rb_block_given_p()) {
+		aop->sock_state_cb = init_callback;
+		aop->sock_state_cb_data = (void *)rb_block_proc();
+		optmask |= ARES_OPT_SOCK_STATE_CB;
 	}
-	vtries = rb_hash_aref(opts, ID2SYM(rb_intern("tries")));
-        if (!NIL_P(vtries)) {
-                aop->timeout = NUM2INT(vtries);
-		optmask |= ARES_OPT_TRIES;
-	}
-	vndots = rb_hash_aref(opts, ID2SYM(rb_intern("ndots")));
-        if (!NIL_P(vndots)) {
-                aop->timeout = NUM2INT(vtries);
-		optmask |= ARES_OPT_NDOTS;
-	}
-	vudp_port = rb_hash_aref(opts, ID2SYM(rb_intern("udp_port")));
-        if (!NIL_P(vudp_port)) {
-                aop->udp_port = NUM2UINT(vudp_port);
-		optmask |= ARES_OPT_UDP_PORT;
-	}
-	vtcp_port = rb_hash_aref(opts, ID2SYM(rb_intern("tcp_port")));
-        if (!NIL_P(vtcp_port)) {
-                aop->tcp_port = NUM2UINT(vtcp_port);
-		optmask |= ARES_OPT_TCP_PORT;
-	}
-	/* TODO: servers, domains */
-	vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
-        if (!NIL_P(vndots)) {
-                aop->lookups = StringValuePtr(vlookups);
-		optmask |= ARES_OPT_LOOKUPS;
-	}
-	/* TODO: callback */
 
 	return(optmask);
 }
@@ -158,7 +173,7 @@ rb_cares_init(int argc, VALUE *argv, VALUE self)
 	Data_Get_Struct(self, ares_channel, chp);
 
 	rb_scan_args(argc, argv, "01", &opts);
-	if (NIL_P(opts)) {
+	if (NIL_P(opts) && !rb_block_given_p()) {
 		status = ares_init(chp);
 		if (status != ARES_SUCCESS)
 			raise_error(status);
