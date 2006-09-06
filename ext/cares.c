@@ -99,15 +99,15 @@ rb_cares_alloc(VALUE klass)
 }
 
 static void
-init_callback(void *arg, int socket, int read, int write)
+init_callback(void *arg, int s, int read, int write)
 {
-	VALUE	sock, rb_cSock;
+	VALUE	socket, rb_cSock;
 	VALUE	block = (VALUE)arg;
 
 	rb_cSock = rb_const_get(rb_cObject, rb_intern("Socket"));
-	sock = rb_funcall(rb_cSock, rb_intern("for_fd"), 1, INT2NUM(socket));
+	socket = rb_funcall(rb_cSock, rb_intern("for_fd"), 1, INT2NUM(s));
 
-	rb_funcall(block, rb_intern("call"), 3, sock,
+	rb_funcall(block, rb_intern("call"), 3, socket,
 		   read ? Qtrue : Qfalse, write ? Qtrue : Qfalse);
 }
 
@@ -188,8 +188,21 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			optmask |= ARES_OPT_DOMAINS;
 		}
 		vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
-		if (!NIL_P(vndots)) {
-			aop->lookups = StringValuePtr(vlookups);
+		if (!NIL_P(vlookups)) {
+			ID	id = rb_to_id(vlookups);
+			if (id == rb_intern("dns"))
+				aop->lookups = "b";
+			else if (id == rb_intern("hosts"))
+				aop->lookups = "f";
+			else {
+				/*
+				 * XXX Let c-ares handle it (why does rb_raise
+				 * segfault here?)
+				 * rb_raise(rb_eArgError, "initialize: "
+				 *	    "invalid value for :lookups");
+				 */
+				aop->lookups = "";
+			}
 			optmask |= ARES_OPT_LOOKUPS;
 		}
 	}
@@ -202,6 +215,67 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 	return(optmask);
 }
 
+/*
+ *  call-seq:
+ *     Cares.new([options])                                   => cares_obj
+ *     Cares.new([options]) { |socket, read, write| block }   => cares_obj
+ *
+ *  Creates a new <code>Cares</code> object. The <code>options</code> hash
+ *  accepts the following keys:
+ *
+ *  * <code>:flags</code> Flags controlling the behaviour of the resolver.
+ *    See below for a description os the possible flags.
+ *  * <code>:timeout</code> The number of seconds each name server is given
+ *    to respond to a query on the first try. For further queries, the timeout
+ *    scales nearly with the provided value. The default is 5 seconds.
+ *  * <code>:tries</code> The number of times the resolver will try to
+ *    contact each name server before giving up. The default is 4 tries.
+ *  * <code>:ndots</code> The number of dots that must be present in a
+ *    domain name for it to be queried "as is", prior to querying with the
+ *    default domain extensions appended. The default is 1, unless set
+ *    otherwise in resolv.conf or the <code>RES_OPTIONS</code> environment
+ *    variable.
+ *  * <code>:udp_port</code> The port to use for UDP queries. The default is 53.
+ *  * <code>:tcp_port</code> The port to use for TCP queries. The default is 53.
+ *  * <code>:servers</code>  An array of IP addresses to be used as the servers
+ *    to be contacted, instead of the ones found in resolv.conf or the local
+ *    name daemon.
+ *  * <code>:domains</code> An array of domains to be searched, instead of
+ *    the ones specified in resolv.conf or the machine hostname.
+ *  * <code>:lookups</code> The lookups to perform for host queries. It
+ *    should be a string of the characters <i>b</i> or <i>f</i>, where <i>b</i>
+ *    indicates a DNS lookup, and <i>f</i> indicates a hosts file lookup.
+ *
+ *  The <code>:flags</code> option is a bitwise-or of values from the list
+ *  below:
+ *
+ *  * <code>Cares::Init::USEVC</code> Always use TCP queries. Normally, TCP
+ *    is only used if a UDP query returns a truncated result.
+ *  * <code>Cares::Init::PRIMARY</code> Only query the first server in the
+ *    server list.
+ *  * <code>Cares::Init::IGNTC</code> If a truncated response to an UDP query
+ *    is received, do not fall back to TCP; simply continue with the truncated
+ *    response.
+ *  * <code>Cares::Init::NORECURSE</code> Do not set the "recursion desired"
+ *    bit on outgoing queries.
+ *  * <code>Cares::Init::STAYOPEN</code> Do not close the communication
+ *    sockets when the number of active queries drops to zero.
+ *  * <code>Cares::Init::NOSEARCH</code> Do not use the default search
+ *    domains; only query hostnames as-is or as aliases.
+ *  * <code>Cares::Init::NOALIASES</code> Do not honor the
+ *    <code>HOSTALIASES</code> environment variable, which specifies a
+ *    file of hostname translations.
+ *  * <code>Cares::Init::NOCHECKRESP</code> Do not discard responses with the
+ *    <code>SERVFAIL</code>, <code>NOTIMP</code>, or <code>REFUSED</code>
+ *    response codes or responses whose questions don't match the
+ *    questions in the request.
+ *
+ *  If a block is given, it'll be called when a socket used in name resolving
+ *  has its state changed. The block takes three arguments. The first one is
+ *  the <code>Socket</code> object, the the other two are boolean values
+ *  indicating if the socket should listen for read and/or write events,
+ *  respectively.
+ */
 static VALUE
 rb_cares_init(int argc, VALUE *argv, VALUE self)
 {
@@ -260,6 +334,20 @@ host_callback(void *arg, int status, struct hostent *hp)
 	rb_funcall(block, rb_intern("call"), 1, info);
 }
 
+/*
+ *  call-seq:
+ *     cares.gethostbyname(name, family) { |cname, aliases, family, *addrs| block }  => cares
+ *
+ *  Performs a DNS lookup on <code>name</code>, for addresses of family
+ *  <code>family</code>. The <code>family</code> argument is either
+ *  <code>Socket::AF_INET</code> or <code>Socket::AF_INET6</code>. The results
+ *  are passed as arguments to the block:
+ *
+ *  * <code>cname</code>: <code>name</code>'s canonical name.
+ *  * <code>aliases</code>: array of aliases.
+ *  * <code>family</code>: address family.
+ *  * <code>*addrs</code>: array containing <code>name</code>'s addresses.
+ */
 static VALUE
 rb_cares_gethostbyname(VALUE self, VALUE host, VALUE family)
 {
@@ -274,6 +362,20 @@ rb_cares_gethostbyname(VALUE self, VALUE host, VALUE family)
 	return(self);
 }
 
+/*
+ *  call-seq:
+ *     cares.gethostbyaddr(addr, family) { |name, aliases, family, *addrs| block }  => cares
+ *
+ *  Performs a reverse DNS query on <code>addr</code>. for addresses of family
+ *  <code>family</code>. The <code>family</code> argument is either
+ *  <code>Socket::AF_INET</code> or <code>Socket::AF_INET6</code>. The results
+ *  are passed as arguments to the block:
+ *
+ *  * <code>name</code>: <code>addr</code>'s name.
+ *  * <code>aliases</code>: array of aliases.
+ *  * <code>family</code>: address family.
+ *  * <code>*addrs</code>: array containing <code>name</code>'s addresses.
+ */
 static VALUE
 rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 {
@@ -330,6 +432,18 @@ nameinfo_callback(void *arg, int status, char *node, char *service)
 	rb_funcall(block, rb_intern("call"), 1, info);
 }
 
+/*
+ *  call-seq:
+ *     cares.getnameinfo(nameservice) { |name, service| block }    => cares
+ *
+ *  Performs a protocol-independent reverse lookup on the host and/or service
+ *  names specified on the <code>nameservice</code> hash. The valid keys are:
+ *
+ *  * <code>:addr</code>: IPv4 or IPv6 address.
+ *  * <code>:service</code>: Service name.
+ *
+ *  The lookup results are passed as parameters to the block.
+ */
 static VALUE
 rb_cares_getnameinfo(VALUE self, VALUE info)
 {
@@ -393,6 +507,19 @@ rb_cares_getnameinfo(VALUE self, VALUE info)
 	return(self);
 }
 
+/*
+ *  call-seq:
+ *     cares.select_loop(timeout=nil)    => nil
+ *
+ *  Handles the input/output and timeout associated witht the queries made
+ *  from the name and address lookup methods. The block passed to each of
+ *  those methods is yielded when the event is processed.
+ *
+ *  The <code>timeout</code> hash accepts the following keys:
+ *
+ *  * <code>:seconds</code>:  Timeout in seconds.
+ *  * <code>:useconds</code>: Timeout in microseconds.
+ */
 static VALUE
 rb_cares_select_loop(int argc, VALUE *argv, VALUE self)
 {
