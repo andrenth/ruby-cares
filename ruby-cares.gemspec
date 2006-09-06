@@ -3,7 +3,7 @@ require 'rubygems'
 spec = Gem::Specification.new do |s|
   s.name              = 'ruby-cares'
   s.version           = '0.1.0'
-  s.platform          = Gem::Platform::LINUX_586
+  s.platform          = Gem::Platform::RUBY
   s.summary           = 'A Ruby extension for c-ares'
   s.requirements      = %q{c-ares}
   s.files             = Dir.glob('*/**')
