@@ -1,0 +1,68 @@
+                              Ruby/Cares
+                              ~~~~~~~~~~
+
+0. INTRODUCTION
+1. REQUIREMENTS
+2. INSTALLATION
+3. LICENSE
+4. AUTHOR
+5. REFERENCES
+
+
+0. INTRODUCTION
+===============
+
+Ruby/Cares is a C extension for the c-ares[1] library. It provides an
+asynchronous DNS resolver to be used with ruby scripts.
+
+
+1. REQUIREMENTS
+===============
+
+Ruby/Cares requires c-ares to be installed. It was developed and tested
+using Ruby 1.8.4.
+
+
+2. INSTALLATION
+===============
+
+To install manually:
+
+$ ruby extconf.rb
+$ make
+# make install
+
+To install from rubygems:
+
+# gem install ruby-cares
+
+
+3. LICENSE
+==========
+
+Copyright (c) 2006 Andre Nathan <andre@digirati.com.br>
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+4. AUTHOR
+=========
+
+Ruby/Cares was developed by Andre Nathan.
+
+
+5. REFERENCES
+=============
+
+[1] The c-ares asynchronous DNS library:
+    http://daniel.haxx.se/projects/c-ares/
