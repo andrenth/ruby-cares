@@ -101,12 +101,13 @@ rb_cares_alloc(VALUE klass)
 static void
 init_callback(void *arg, int socket, int read, int write)
 {
-	VALUE	io;
+	VALUE	sock, rb_cSock;
 	VALUE	block = (VALUE)arg;
 
-	io = rb_funcall(rb_cIO, rb_intern("for_fd"), 1, INT2NUM(socket));
+	rb_cSock = rb_const_get(rb_cObject, rb_intern("Socket"));
+	sock = rb_funcall(rb_cSock, rb_intern("for_fd"), 1, INT2NUM(socket));
 
-	rb_funcall(block, rb_intern("call"), 3, io,
+	rb_funcall(block, rb_intern("call"), 3, sock,
 		   read ? Qtrue : Qfalse, write ? Qtrue : Qfalse);
 }
 
