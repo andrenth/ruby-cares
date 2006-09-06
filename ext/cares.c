@@ -1,3 +1,73 @@
+/*
+ *--
+ * Copyright (c) 2006 Andre Nathan <andre@digirati.com.br>
+ * 
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * $Id$
+ *++
+ */
+/*
+ * Document-class: Cares
+ *
+ * == Overview
+ *
+ * Ruby/Cares is a C extension to the
+ * c-ares[http://daniel.haxx.se/projects/c-ares/] library. It performs DNS
+ * requests and name resolving asynchronously.
+ *
+ * = Example
+ *
+ * Below follows a simple example. See Cares' methods documentations for
+ * details valid parameters.
+ *
+ *  require 'cares'
+ *  require 'socket'
+ *
+ *  # Create new Cares instance
+ *  cares = Cares.new(:timeout => 3)
+ *
+ *  #
+ *  # Set up three DNS requests.
+ *  #
+ *
+ *  cares.gethostbyname('www.rubyforge.org', Socket::AF_INET) do |name, aliases, family, *addrs|
+ *    puts "[-] Cares#gethostbyname:"
+ *    puts "  #{domain}:"
+ *    puts "    canonical name: #{name}"
+ *    puts "    aliases: #{aliases.join(', ')}"
+ *    puts "    addresses: #{addrs.join(', ')}"
+ *    puts
+ *  end
+ *
+ *  cares.gethostbyaddr('205.234.109.18', Socket::AF_INET) do |name, *rest|
+ *    puts "[-] Cares#gethostbyaddr:"
+ *    puts "  #{addr}:"
+ *    puts "    name: #{name}"
+ *    puts
+ *  end
+ *
+ *  cares.getnameinfo(:addr => '205.234.109.18') do |name, service|
+ *    puts "[-] Cares#getnameinfo:"
+ *    puts "  #{addr}:"
+ *    puts "    name: #{name}"
+ *    puts
+ *  end
+ *
+ *  # Wait for responses and yield the blocks passed to each of the
+ *  # methods calls above.
+ *  cares.select_loop
+ */
 #include <ruby.h>
 #include <ares.h>
 
