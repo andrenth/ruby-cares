@@ -174,7 +174,7 @@ init_callback(void *arg, int s, int read, int write)
 	VALUE	socket, rb_cSock;
 	VALUE	block = (VALUE)arg;
 
-	rb_cSock = rb_const_get(rb_cObject, rb_intern("Socket"));
+	rb_cSock = rb_path2class("Socket");
 	socket = rb_funcall(rb_cSock, rb_intern("for_fd"), 1, INT2NUM(s));
 
 	rb_funcall(block, rb_intern("call"), 3, socket,
