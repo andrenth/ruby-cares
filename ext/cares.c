@@ -89,47 +89,48 @@ static VALUE cDestrError;
 static VALUE cFlagsError;
 
 static void
-define_cares_exceptions(VALUE cares)
+define_cares_exceptions(VALUE cCares)
 {
-	cNotImpError =
-	    rb_define_class_under(cares, "NotImplementedError", rb_eException);
-	cBadNameError =
-	    rb_define_class_under(cares, "BadNameError", rb_eException);
-	cNotFoundError =
-	    rb_define_class_under(cares, "AddressNotFoundError", rb_eException);
-	cNoMemError =
-	    rb_define_class_under(cares, "NoMemoryError", rb_eException);
-	cDestrError =
-	    rb_define_class_under(cares, "DestructionError", rb_eException);
-	cFlagsError =
-	    rb_define_class_under(cares, "BadFlagsError", rb_eException);
+	cNotImpError = rb_define_class_under(cCares, "NotImplementedError",
+	    rb_eException);
+	cBadNameError = rb_define_class_under(cCares, "BadNameError",
+	    rb_eException);
+	cNotFoundError = rb_define_class_under(cCares, "AddressNotFoundError",
+	    rb_eException);
+	cNoMemError = rb_define_class_under(cCares, "NoMemoryError",
+	    rb_eException);
+	cDestrError = rb_define_class_under(cCares, "DestructionError",
+	    rb_eException);
+	cFlagsError = rb_define_class_under(cCares, "BadFlagsError",
+	    rb_eException);
 }
 
 static void
-define_init_flags(VALUE init)
+define_init_flags(void)
 {
-	rb_define_const(init, "USEVC", INT2NUM(ARES_FLAG_USEVC));
-	rb_define_const(init, "PRIMARY", INT2NUM(ARES_FLAG_PRIMARY));
-	rb_define_const(init, "IGNTC", INT2NUM(ARES_FLAG_IGNTC));
-	rb_define_const(init, "NORECURSE", INT2NUM(ARES_FLAG_NORECURSE));
-	rb_define_const(init, "STAYOPEN", INT2NUM(ARES_FLAG_STAYOPEN));
-	rb_define_const(init, "NOSEARCH", INT2NUM(ARES_FLAG_NOSEARCH));
-	rb_define_const(init, "NOALIASES", INT2NUM(ARES_FLAG_NOALIASES));
-	rb_define_const(init, "NOCHECKRESP", INT2NUM(ARES_FLAG_NOCHECKRESP));
+	rb_define_const(cInit, "USEVC", INT2NUM(ARES_FLAG_USEVC));
+	rb_define_const(cInit, "PRIMARY", INT2NUM(ARES_FLAG_PRIMARY));
+	rb_define_const(cInit, "IGNTC", INT2NUM(ARES_FLAG_IGNTC));
+	rb_define_const(cInit, "NORECURSE", INT2NUM(ARES_FLAG_NORECURSE));
+	rb_define_const(cInit, "STAYOPEN", INT2NUM(ARES_FLAG_STAYOPEN));
+	rb_define_const(cInit, "NOSEARCH", INT2NUM(ARES_FLAG_NOSEARCH));
+	rb_define_const(cInit, "NOALIASES", INT2NUM(ARES_FLAG_NOALIASES));
+	rb_define_const(cInit, "NOCHECKRESP", INT2NUM(ARES_FLAG_NOCHECKRESP));
 }
 
 static void
-define_nameinfo_flags(VALUE ni)
+define_nameinfo_flags(void)
 {
-	rb_define_const(ni, "NOFQDN", INT2NUM(ARES_NI_NOFQDN));
-	rb_define_const(ni, "NUMERICHOST", INT2NUM(ARES_NI_NUMERICHOST));
-	rb_define_const(ni, "NAMEREQD", INT2NUM(ARES_NI_NAMEREQD));
-	rb_define_const(ni, "NUMERICSERV", INT2NUM(ARES_NI_NUMERICSERV));
-	rb_define_const(ni, "TCP", INT2NUM(ARES_NI_TCP));
-	rb_define_const(ni, "UDP", INT2NUM(ARES_NI_UDP));
-	rb_define_const(ni, "SCTP", INT2NUM(ARES_NI_SCTP));
-	rb_define_const(ni, "DCCP", INT2NUM(ARES_NI_DCCP));
-	rb_define_const(ni, "NUMERICSCOPE", INT2NUM(ARES_NI_NUMERICSCOPE));
+	rb_define_const(cNameInfo, "NOFQDN", INT2NUM(ARES_NI_NOFQDN));
+	rb_define_const(cNameInfo, "NUMERICHOST", INT2NUM(ARES_NI_NUMERICHOST));
+	rb_define_const(cNameInfo, "NAMEREQD", INT2NUM(ARES_NI_NAMEREQD));
+	rb_define_const(cNameInfo, "NUMERICSERV", INT2NUM(ARES_NI_NUMERICSERV));
+	rb_define_const(cNameInfo, "TCP", INT2NUM(ARES_NI_TCP));
+	rb_define_const(cNameInfo, "UDP", INT2NUM(ARES_NI_UDP));
+	rb_define_const(cNameInfo, "SCTP", INT2NUM(ARES_NI_SCTP));
+	rb_define_const(cNameInfo, "DCCP", INT2NUM(ARES_NI_DCCP));
+	rb_define_const(cNameInfo, "NUMERICSCOPE",
+			INT2NUM(ARES_NI_NUMERICSCOPE));
 }
 
 static void
@@ -510,7 +511,7 @@ nameinfo_callback(void *arg, int status, char *node, char *service)
  *  names specified on the <code>nameservice</code> hash. The valid keys are:
  *
  *  * <code>:addr</code>: IPv4 or IPv6 address.
- *  * <code>:service</code>: Service name.
+ *  * <code>:service</code>: Port number.
  *
  *  The lookup results are passed as parameters to the block.
  */
@@ -639,10 +640,10 @@ Init_cares(void)
 	define_cares_exceptions(cCares);
 
 	cInit = rb_define_class_under(cCares, "Init", rb_cObject);
-	define_init_flags(cInit);
+	define_init_flags();
 
 	cNameInfo = rb_define_class_under(cCares, "NameInfo", rb_cObject);
-	define_nameinfo_flags(cNameInfo);
+	define_nameinfo_flags();
 
 	rb_define_alloc_func(cCares, rb_cares_alloc);
 	rb_define_method(cCares, "initialize", rb_cares_init, -1);
