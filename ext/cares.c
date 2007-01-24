@@ -524,6 +524,9 @@ rb_cares_getnameinfo(VALUE self, VALUE info)
 	ares_channel *chp;
 	VALUE	vaddr, vport, vflags;
 
+	if (!rb_block_given_p())
+		rb_raise(rb_eArgError, "getnameinfo: block needed");
+
 	Data_Get_Struct(self, ares_channel, chp);
 
 	vflags = rb_hash_aref(info, ID2SYM(rb_intern("flags")));
