@@ -226,6 +226,11 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			struct in_addr in, *servers;
 
 			n = RARRAY_LEN(vservers);
+                        if (n > INT_MAX) {
+                                rb_raise(rb_eArgError, "opts[:servers] is too"
+                                                " big. c-ares only supports"
+                                                " INT_MAX servers");
+                        }
 			servers = ALLOCA_N(struct in_addr, n);
 			for (i = 0; i < n; i++) {
 				char	*caddr;
@@ -237,7 +242,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 				MEMCPY(servers+i, &in, struct in_addr, 1);
 			}
 			aop->servers = servers;
-			aop->nservers = n;
+			aop->nservers = (int)n;
 			optmask |= ARES_OPT_SERVERS;
 		}
 		vdomains = rb_hash_aref(opts, ID2SYM(rb_intern("domains")));
@@ -246,6 +251,11 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			long	 i, n;
 
 			n = RARRAY_LEN(vdomains);
+                        if (n > INT_MAX) {
+                                rb_raise(rb_eArgError, "opts[:domains] is too"
+                                                " big. c-ares only supports"
+                                                " INT_MAX servers");
+                        }
 			domains = ALLOC_N(char, n);
 			for (i = 0; i < n; i++) {
 				char	*cdomain;
@@ -255,7 +265,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 				MEMCPY(domains+i, cdomain, strlen(cdomain), 1);
 			}
 			aop->domains = &domains;
-			aop->ndomains = n;
+			aop->ndomains = (int)n;
 			optmask |= ARES_OPT_DOMAINS;
 		}
 		vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
