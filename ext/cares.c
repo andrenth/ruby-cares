@@ -225,7 +225,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			long	i, n;
 			struct in_addr in, *servers;
 
-			n = RARRAY(vservers)->len;
+			n = RARRAY_LEN(vservers);
 			servers = ALLOCA_N(struct in_addr, n);
 			for (i = 0; i < n; i++) {
 				char	*caddr;
@@ -245,7 +245,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			char	*domains;
 			long	 i, n;
 
-			n = RARRAY(vdomains)->len;
+			n = RARRAY_LEN(vdomains);
 			domains = ALLOC_N(char, n);
 			for (i = 0; i < n; i++) {
 				char	*cdomain;
