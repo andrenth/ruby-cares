@@ -31,8 +31,8 @@ $ rake install    # or you can build and install the gem
 
 ##License
 
-Copyright (c) 2011 David Albert <davidbalbert@gmail.com>
-Copyright (c) 2006 Andre Nathan <andre@digirati.com.br>
+Copyright (c) 2011 David Albert davidbalbert@gmail.com
+Copyright (c) 2006 Andre Nathan andre@digirati.com.br
 
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
