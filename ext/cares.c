@@ -385,7 +385,7 @@ rb_cares_init(int argc, VALUE *argv, VALUE self)
 }
 
 static void
-host_callback(void *arg, int status, struct hostent *hp)
+host_callback(void *arg, int status, int timeouts, struct hostent *hp)
 {
 	char	  buf[BUFLEN], **p;
 	VALUE	  block, info, aliases;
@@ -495,7 +495,7 @@ rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 }
 
 static void
-nameinfo_callback(void *arg, int status, char *node, char *service)
+nameinfo_callback(void *arg, int status, int timeouts, char *node, char *service)
 {
 	VALUE	  block, info;
 
