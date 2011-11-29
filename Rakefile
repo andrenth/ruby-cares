@@ -3,7 +3,7 @@ require 'rake/extensiontask'
 
 Rake::ExtensionTask.new('cares') do |ext|
   ext.lib_dir = "lib/cares"
-  ext.ext_dir = "ext"
+  ext.ext_dir = "ext/c-ares"
 end
 
 desc "load ruby-cares in a pry or irb session (alias `rake c`)"
