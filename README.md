@@ -31,6 +31,11 @@ $ rake install    # or you can build and install the gem
 
 ##License
 
+Ruby/Cares includes c-ares 1.7.5 which is by written by Daniel Stenberg and
+others (see ext/c-ares/AUTHORS). The source was imported from joyent/libuv It
+includes everything in ext/c-ares except cares.c and extconf.rb. It is licensed
+under the MIT license.
+
 Copyright (c) 2011 David Albert davidbalbert@gmail.com  
 Copyright (c) 2006 Andre Nathan andre@digirati.com.br
 
