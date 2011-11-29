@@ -6,7 +6,6 @@ spec = Gem::Specification.new do |s|
   s.name              = 'ruby-cares'
   s.version           = Cares::VERSION
   s.summary           = 'A Ruby extension for c-ares'
-  s.requirements      = %q{c-ares}
   s.has_rdoc          = false
   s.authors           = ['Andre Nathan', 'David Albert']
   s.email             = 'andre@digirati.com.br'
