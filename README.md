@@ -23,6 +23,7 @@ $ gem install ruby-cares
 ```
 
 From source:
+
 ```
 $ bundle install
 $ rake compile    # for development
