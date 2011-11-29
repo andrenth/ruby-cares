@@ -12,7 +12,7 @@ asynchronous DNS resolver to be used with ruby scripts.
 
 Ruby/Cares currently works with Ruby 1.9.2 and does not have any external
 dependencies (c-ares 1.7.5 is included in the distribution). It has been tested
-on Mac OS X.
+on Mac OS X and Linux.
 
 ##Installation
 
