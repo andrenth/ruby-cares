@@ -646,6 +646,38 @@ rb_cares_select_loop(int argc, VALUE *argv, VALUE self)
 	return(Qnil);
 }
 
+/* TODO: figure out how to write documentation ;) */
+static VALUE
+rb_cares_get_fds(VALUE self)
+{
+        int nfds, i;
+        fd_set read_set, write_set;
+        VALUE read_ary, write_ary, return_ary;
+	ares_channel *chp;
+
+	Data_Get_Struct(self, ares_channel, chp);
+
+        FD_ZERO(&read_set);
+        FD_ZERO(&write_set);
+        nfds = ares_fds(*chp, &read_set, &write_set);
+
+        /* just guessing the size. not super important that we get it right */
+        read_ary = rb_ary_new2(nfds/2);
+        write_ary = rb_ary_new2(nfds/2);
+        for (i = 0; i < nfds; i++) {
+                if (FD_ISSET(i, &read_set))
+                        rb_ary_push(read_ary, INT2NUM(i));
+                if (FD_ISSET(i, &write_set))
+                        rb_ary_push(write_ary, INT2NUM(i));
+        }
+
+        return_ary = rb_ary_new2(2);
+        rb_ary_push(return_ary, read_ary);
+        rb_ary_push(return_ary, write_ary);
+
+        return return_ary;
+}
+
 void
 Init_cares(void)
 {
@@ -664,4 +696,6 @@ Init_cares(void)
 	rb_define_method(cCares, "gethostbyaddr", rb_cares_gethostbyaddr, 2);
 	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 1);
 	rb_define_method(cCares, "select_loop", rb_cares_select_loop, -1);
+
+        rb_define_method(cCares, "get_fds", rb_cares_get_fds, 0);
 }
