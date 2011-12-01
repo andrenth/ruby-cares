@@ -23,4 +23,15 @@ task :console do
   sh "#{repl} -Ilib -rubygems -rcares"
 end
 
+desc "checkout build dependencies"
+task :deps do
+  if Dir['ext/c-ares/*'].empty?
+    sh 'git submodule init'
+    sh 'git submodule update'
+  end
+end
+
+# TODO THIS DOESN"T WORK
+task :compile => :deps
+
 task :c => :console
