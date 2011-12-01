@@ -1,0 +1,3 @@
+[submodule "ext/c-ares"]
+	path = ext/c-ares
+	url = git://github.com/bagder/c-ares.git
