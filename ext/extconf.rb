@@ -3,6 +3,7 @@ require 'fileutils'
 
 FileUtils.cp_r(Dir["c-ares/*.{c,h}"], File.expand_path("../", __FILE__))
 
+system("patch -p1 <ares.diff")
 system("patch -p1 <ares_setup.diff")
 uname = `uname -s`.chomp.downcase
 
