@@ -6,3 +6,15 @@ pkg/*
 tmp/*
 *.bundle
 *.so
+
+# code copied in from c-ares
+ext/ares*.c
+ext/ares*.h
+ext/bitncmp.c
+ext/bitncmp.h
+ext/inet*.c
+ext/inet*.h
+ext/*win32.h
+ext/nameser.h
+ext/setup_once.h
+ext/windows_port.c
