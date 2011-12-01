@@ -1,4 +1,7 @@
 require 'mkmf'
+require 'fileutils'
+
+FileUtils.cp_r(Dir["c-ares/*.{c,h}"], File.expand_path("../", __FILE__))
 
 uname = `uname -s`.chomp.downcase
 
