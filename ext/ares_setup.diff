@@ -1,0 +1,20 @@
+diff --git a/ares_setup.h b/ares_setup.h
+index a46c510..254cccb 100644
+--- a/ares_setup.h
++++ b/ares_setup.h
+@@ -75,6 +75,7 @@
+ /*  please, do it beyond the point further indicated in this file.  */
+ /* ================================================================ */
+ 
++#if 0 /* libuv hack */
+ /*
+  * c-ares external interface definitions are also used internally,
+  * and might also include required system header files to define them.
+@@ -87,6 +88,7 @@
+  */
+ 
+ #include <ares_rules.h>
++#endif /* libuv hack */
+ 
+ /* ================================================================= */
+ /* No system header file shall be included in this file before this  */
