@@ -21,6 +21,7 @@ task :submodule do
 end
 
 task :build => :submodule
+task :install => :submodule
 
 desc "load ruby-cares in a pry or irb session (alias `rake c`)"
 task :console do
