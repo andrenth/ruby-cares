@@ -20,6 +20,8 @@ task :submodule do
   end
 end
 
+task :build => :submodule
+
 desc "load ruby-cares in a pry or irb session (alias `rake c`)"
 task :console do
   if system("which pry")
