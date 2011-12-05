@@ -254,7 +254,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
                         if (n > INT_MAX) {
                                 rb_raise(rb_eArgError, "opts[:domains] is too"
                                                 " big. c-ares only supports"
-                                                " INT_MAX servers");
+                                                " INT_MAX domains");
                         }
 			domains = ALLOC_N(char, n);
 			for (i = 0; i < n; i++) {
