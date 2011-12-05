@@ -7,7 +7,7 @@ spec = Gem::Specification.new do |s|
   s.version           = Cares::VERSION
   s.summary           = 'A Ruby extension for c-ares'
   s.has_rdoc          = false
-  s.authors           = ['Andre Nathan', 'David Albert']
+  s.authors           = ['Andre Nathan']
   s.email             = 'andre@digirati.com.br'
   s.rubyforge_project = 'cares'
   s.homepage          = 'http://cares.rubyforge.org'
@@ -16,7 +16,7 @@ spec = Gem::Specification.new do |s|
     asynchronous DNS resolver to be used with ruby scripts.
   EOF
 
-  s.files         = `git ls-files`.split("\n")
+  s.files         = `git ls-files`.split("\n") + Dir["ext/c-ares/**/*"]
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
