@@ -30,6 +30,17 @@ $ rake compile    # for development
 $ rake install    # or you can build and install the gem
 ```
 
+## Building gem
+
+Because c-ares is vendored in a git submodule, you need to make sure it's fetched before you build the gem. You can do this by running
+
+```
+$ rake submodule
+$ rake build
+```
+
+`extconf.rb` fetches the submodules before building, so if you have already run `rake compile` in your source tree, `rake build` will work just fine.
+
 ##License
 
 Ruby/Cares includes c-ares 1.7.5 which is by written by Daniel Stenberg and

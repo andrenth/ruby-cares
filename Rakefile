@@ -12,6 +12,14 @@ Rake::ExtensionTask.new('cares') do |ext|
   CLEAN.include "#{ext.ext_dir}/{nameser.h,setup_once.h,windows_port.c}"
 end
 
+desc "Fetch c-ares submodule"
+task :submodule do
+  if Dir['ext/c-ares/*'].empty?
+    sh 'git submodule init'
+    sh 'git submodule update'
+  end
+end
+
 desc "load ruby-cares in a pry or irb session (alias `rake c`)"
 task :console do
   if system("which pry")
