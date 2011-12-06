@@ -298,7 +298,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 
 /*
  *  call-seq:
- *     Cares.new([options])	                                  => cares_obj
+ *     Cares.new([options])                                   => cares_obj
  *     Cares.new([options]) { |socket, read, write| block }   => cares_obj
  *
  *  Creates a new <code>Cares</code> object. The <code>options</code> hash
