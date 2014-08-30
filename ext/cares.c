@@ -225,7 +225,12 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			long	i, n;
 			struct in_addr in, *servers;
 
-			n = RARRAY(vservers)->len;
+			n = RARRAY_LEN(vservers);
+			if (n > INT_MAX) {
+				rb_raise(rb_eArgError, "opts[:servers] is too"
+						" big. c-ares only supports"
+						" INT_MAX servers");
+			}
 			servers = ALLOCA_N(struct in_addr, n);
 			for (i = 0; i < n; i++) {
 				char	*caddr;
@@ -237,7 +242,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 				MEMCPY(servers+i, &in, struct in_addr, 1);
 			}
 			aop->servers = servers;
-			aop->nservers = n;
+			aop->nservers = (int)n;
 			optmask |= ARES_OPT_SERVERS;
 		}
 		vdomains = rb_hash_aref(opts, ID2SYM(rb_intern("domains")));
@@ -245,7 +250,12 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 			char	*domains;
 			long	 i, n;
 
-			n = RARRAY(vdomains)->len;
+			n = RARRAY_LEN(vdomains);
+			if (n > INT_MAX) {
+				rb_raise(rb_eArgError, "opts[:domains] is too"
+						" big. c-ares only supports"
+						" INT_MAX domains");
+			}
 			domains = ALLOC_N(char, n);
 			for (i = 0; i < n; i++) {
 				char	*cdomain;
@@ -255,7 +265,7 @@ set_init_opts(VALUE opts, struct ares_options *aop)
 				MEMCPY(domains+i, cdomain, strlen(cdomain), 1);
 			}
 			aop->domains = &domains;
-			aop->ndomains = n;
+			aop->ndomains = (int)n;
 			optmask |= ARES_OPT_DOMAINS;
 		}
 		vlookups = rb_hash_aref(opts, ID2SYM(rb_intern("lookups")));
@@ -375,13 +385,13 @@ rb_cares_init(int argc, VALUE *argv, VALUE self)
 }
 
 static void
-host_callback(void *arg, int status, struct hostent *hp)
+host_callback(void *arg, int status, int timeouts, struct hostent *hp)
 {
 	char	  buf[BUFLEN], **p;
 	VALUE	  block, info, aliases;
 
-        if (status != ARES_SUCCESS)
-                raise_error(status);
+	if (status != ARES_SUCCESS)
+		raise_error(status);
 
 	block = (VALUE)arg;
 
@@ -485,12 +495,12 @@ rb_cares_gethostbyaddr(VALUE self, VALUE addr, VALUE family)
 }
 
 static void
-nameinfo_callback(void *arg, int status, char *node, char *service)
+nameinfo_callback(void *arg, int status, int timeouts, char *node, char *service)
 {
 	VALUE	  block, info;
 
-        if (status != ARES_SUCCESS)
-                raise_error(status);
+	if (status != ARES_SUCCESS)
+		raise_error(status);
 
 	block = (VALUE)arg;
 	info = rb_ary_new();
@@ -636,6 +646,38 @@ rb_cares_select_loop(int argc, VALUE *argv, VALUE self)
 	return(Qnil);
 }
 
+/* TODO: figure out how to write documentation ;) */
+static VALUE
+rb_cares_get_fds(VALUE self)
+{
+	int nfds, i;
+	fd_set read_set, write_set;
+	VALUE read_ary, write_ary, return_ary;
+	ares_channel *chp;
+
+	Data_Get_Struct(self, ares_channel, chp);
+
+	FD_ZERO(&read_set);
+	FD_ZERO(&write_set);
+	nfds = ares_fds(*chp, &read_set, &write_set);
+
+	/* just guessing the size. not super important that we get it right */
+	read_ary = rb_ary_new2(nfds/2);
+	write_ary = rb_ary_new2(nfds/2);
+	for (i = 0; i < nfds; i++) {
+		if (FD_ISSET(i, &read_set))
+			rb_ary_push(read_ary, INT2NUM(i));
+		if (FD_ISSET(i, &write_set))
+			rb_ary_push(write_ary, INT2NUM(i));
+	}
+
+	return_ary = rb_ary_new2(2);
+	rb_ary_push(return_ary, read_ary);
+	rb_ary_push(return_ary, write_ary);
+
+	return return_ary;
+}
+
 void
 Init_cares(void)
 {
@@ -654,4 +696,6 @@ Init_cares(void)
 	rb_define_method(cCares, "gethostbyaddr", rb_cares_gethostbyaddr, 2);
 	rb_define_method(cCares, "getnameinfo", rb_cares_getnameinfo, 1);
 	rb_define_method(cCares, "select_loop", rb_cares_select_loop, -1);
+
+	rb_define_method(cCares, "get_fds", rb_cares_get_fds, 0);
 }

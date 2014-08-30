@@ -1,16 +1,13 @@
-require 'rubygems'
+# -*- encoding: utf-8 -*-
+$:.push File.expand_path("../lib", __FILE__)
+require 'cares/version'
 
 spec = Gem::Specification.new do |s|
   s.name              = 'ruby-cares'
-  s.version           = '0.1.0'
-  s.platform          = Gem::Platform::RUBY
+  s.version           = Cares::VERSION
   s.summary           = 'A Ruby extension for c-ares'
-  s.requirements      = %q{c-ares}
-  s.files             = Dir.glob('*/**')
-  s.extensions        = %q{ext/extconf.rb}
-  s.autorequire       = 'cares'
   s.has_rdoc          = false
-  s.author            = 'Andre Nathan'
+  s.authors           = ['Andre Nathan']
   s.email             = 'andre@digirati.com.br'
   s.rubyforge_project = 'cares'
   s.homepage          = 'http://cares.rubyforge.org'
@@ -18,9 +15,12 @@ spec = Gem::Specification.new do |s|
     Ruby/Cares is a C extension for the c-ares library, Providing an
     asynchronous DNS resolver to be used with ruby scripts.
   EOF
-end
 
-if __FILE__ == $0
-  Gem.manage_gems
-  Gem::Builder.new(spec).build
+  s.files         = `git ls-files`.split("\n") + Dir["ext/c-ares/**/*"]
+  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
+  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
+  s.require_paths = ["lib"]
+  s.extensions    = ["ext/extconf.rb"]
+
+  s.add_development_dependency "rake-compiler"
 end
